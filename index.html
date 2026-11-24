@@ -4,9 +4,16 @@
     <title>P2P Test</title>
   </head>
   <body>
-    <p>Your ID: <strong id="my-id">Generating...</strong></p>
-    <input type="text" id="peer-id" placeholder="Enter remote Peer ID" />
-    <button onclick="connectToPeer()">Connect</button>
+    <div id="Hosting">
+      <button onclick="toggleHosting()">Click to Join Hosted Lobby</button>
+      <p>Your (Host) ID: <strong id="my-id">Generating...</strong></p>
+    </div>
+    <div id="Connecting">
+      <button onclick="toggleHosting()">Click to Host Lobby Instead</button>
+      <input type="text" id="peer-id" placeholder="Enter remote Peer ID" />
+      <button onclick="connectToPeer()">Connect</button>
+    </div>
+
     <br><br>
 
     <div id="connectedUsers"></div>
@@ -15,7 +22,7 @@
     <button onclick="changeName()">Send</button>
 
     <input type="text" id="msg" placeholder="Message" />
-    <button onclick="sendMessage()">Send</button>
+    <button onclick="submitMessage()">Send</button>
     <div id="chat"></div>
 
     <script type="text/javascript" src="node_modules/peerjs/dist/peerjs.js"></script>

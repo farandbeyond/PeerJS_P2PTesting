@@ -2,10 +2,19 @@ const Self_PeerConnection = new Peer(); // Uses free public PeerJS signaling ser
 
 let Username = "(You)";
 let PeerID = "";
+let isHost = false;
+toggleHosting();
+
+function toggleHosting(){
+    isHost = !isHost;
+    var hostingDiv = document.getElementById("Hosting");
+    var connectingDiv = document.getElementById("Connecting");
+
+    hostingDiv.style.display = isHost ? '':'none';
+    connectingDiv.style.display = !isHost ? '':'none';
+}
 
 let PeerConnections = new Map();
-// PeerConnections.set(document.getElementById('peer-id').value, new RemoteConnection(Self_PeerConnection));
-// let Remote_PeerConnection;
 
 // Class which defines the connection: Username, Connection, potentially more
 class RemoteConnection{
@@ -41,10 +50,11 @@ function connectToPeer() {
     // Remote_PeerConnection = Self_PeerConnection.connect(remoteId);
     var connection = Self_PeerConnection.connect(remoteId);
     var connectionObject = new RemoteConnection(connection);
+
     PeerConnections.set(remoteId, connectionObject);
 
-    console.log(connection);
-    console.log(PeerConnections.get(remoteId));
+    // console.log(connection);
+    // console.log(PeerConnections.get(remoteId));
 
     InitialHandshake(connection);
     
@@ -58,13 +68,19 @@ function InitialHandshake(RemoteConnection){
     UpdateUserName(RemoteConnection.peer,  "Remote");
 
     RemoteConnection.on('open', e => {
-        sendUsername();
+        sendUsername(PeerID, Username);
+        if(isHost){
+            PeerConnections.forEach((value, id, map) => {
+                Host_ProliferateUsername(id, value.Username);
+            });
+        }
         updateChatters();
     });
 }
 
 // Class for sending data to a remote p2p
 class packetData{
+    peer = "";
     type = "Undefined";
     content = "Blank";
 }
@@ -75,22 +91,41 @@ function setupChat(RemoteConnection) {
         // console.log(data);
         switch(data.type){
             case "Message":
-                addMessageToChat(RemoteConnection.peer, data.content);
+                addMessageToChat(data.peer, data.content);
+                if(isHost) Host_ProliferateChat(data.peer, data.content);
                 break;
             case "Username":
-                UpdateUserName(RemoteConnection.peer, data.content);
+                UpdateUserName(data.peer, data.content);
+                if(isHost) Host_ProliferateUsername(data.peer, data.content);
                 break;
         }
         
     });
 }
+// Host Proliferation
+// Used exclusively by the Host to send messages to all connected Peers
+function Host_ProliferateChat(originID, message){
+    sendMessage(originID, message);
+}
+
+function Host_ProliferateUsername(originID, name){
+    sendUsername(originID, name);
+}
+
+
+// Local Functions
+// Used to send information locally, and not to anyone else
 
 //change a local username.
 function UpdateUserName(id, name){
     // connectionNames.set(id, name);
+
     if(id == PeerID){
         Username = name;
+    }else if(PeerConnections.has(id)){
+        PeerConnections.get(id).Username = name;
     }else{
+        PeerConnections.set(id, new RemoteConnection());
         PeerConnections.get(id).Username = name;
     }
     updateChatters();
@@ -111,56 +146,66 @@ function updateChatters(){
     });
 }
 
-
-function addLocalMessageToChat(message){
+function sendSystemMessageToChat(message){
     var messageElement = document.createElement("p");
     messageElement.innerText = `System: ${message}`;
 
     document.getElementById('chat').appendChild(messageElement);
 }
+
 function addMessageToChat(senderID, message){
-    var senderName = senderID == PeerID ? Username : PeerConnections.get(senderID).Username;
+    console.log(PeerConnections);
+    var senderName = (senderID == PeerID) ? Username : PeerConnections.get(senderID).Username;
     var messageElement = document.createElement("p");
     messageElement.innerText = `${senderName}: ${message}`;
 
     document.getElementById('chat').appendChild(messageElement);
 }
 
+function changeName() {
+    const text = document.getElementById('name').value;
+    UpdateUserName(Self_PeerConnection.id, `${text}`);
+    sendSystemMessageToChat(`Username has been updated to ${text}`);
+    sendUsername(PeerID, text);
+}
 
-
-
-
-function sendMessage() {
+function submitMessage() {
     const text = document.getElementById('msg').value;
-
-    PeerConnections.forEach((connection, id, map) => {
-        console.log(connection);
-        if(connection.Peer_Connection && connection.Peer_Connection.open){
-            var data = new packetData();
-            data.type = "Message";
-            data.content = text;
-            connection.Peer_Connection.send(data);
-        }
-    });
+    sendMessage(PeerID, text);
     addMessageToChat(Self_PeerConnection.id, text);
     document.getElementById('msg').value = "";
 }
 
-function changeName() {
-    const text = document.getElementById('name').value;
-    UpdateUserName(Self_PeerConnection.id, `${text}`);
-    addLocalMessageToChat(`Username has been updated to ${text}`);
-    sendUsername();
-}
-function sendUsername(){
+// Peer Functions
+// Used to send information across a Peer connection. When hosts receieve information, they then proliferate it out to other peers.
+
+function sendMessage(senderID, message){
     PeerConnections.forEach((connection, id, map) => {
         // console.log(connection);
-        if(connection.Peer_Connection && connection.Peer_Connection.open){
-            var data = new packetData();
-            data.type = "Username";
-            data.content = Username;
-            connection.Peer_Connection.send(data);
-            // console.log("Sent Data");
+        if(id != senderID){
+            if(connection.Peer_Connection && connection.Peer_Connection.open){
+                var data = new packetData();
+                data.type = "Message";
+                data.content = message;
+                data.peer = senderID;
+                connection.Peer_Connection.send(data);
+            }
+        }
+    });
+}
+
+function sendUsername(senderID, name){
+    PeerConnections.forEach((connection, id, map) => {
+        // console.log(connection);
+        if(id != senderID){
+            if(connection.Peer_Connection && connection.Peer_Connection.open){
+                var data = new packetData();
+                data.type = "Username";
+                data.content = name;
+                data.peer = senderID;
+                connection.Peer_Connection.send(data);
+                // console.log("Sent Data");
+            }
         }
     });
 }
