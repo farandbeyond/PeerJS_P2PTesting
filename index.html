@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>GitHub Pages P2P</title>
-</head>
-<body>
-  <p>Your ID: <strong id="my-id">Generating...</strong></p>
-  <input type="text" id="peer-id" placeholder="Enter remote Peer ID" />
-  <button onclick="connectToPeer()">Connect</button>
-  <br><br>
-  <div id="connectedUsers">
+  <head>
+    <title>P2P Test</title>
+  </head>
+  <body>
+    <p>Your ID: <strong id="my-id">Generating...</strong></p>
+    <input type="text" id="peer-id" placeholder="Enter remote Peer ID" />
+    <button onclick="connectToPeer()">Connect</button>
+    <br><br>
 
-  </div>
-  <input type="text" id="msg" placeholder="Message" />
-  <button onclick="sendMessage()">Send</button>
-  <div id="chat"></div>
+    <div id="connectedUsers"></div>
 
-  <script src="node_modules/peerjs/dist/peerjs.js"></script>
-  <script src="connection.js"></script>
-</body>
+    <input type="text" id="name" placeholder="Username" />
+    <button onclick="changeName()">Send</button>
+
+    <input type="text" id="msg" placeholder="Message" />
+    <button onclick="sendMessage()">Send</button>
+    <div id="chat"></div>
+
+    <script src="node_modules/peerjs/dist/peerjs.js"></script>
+    <script src="connection.js"></script>
+  </body>
 </html>
